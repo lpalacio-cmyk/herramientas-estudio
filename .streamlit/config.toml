@@ -1,13 +1,25 @@
 [theme]
-   base = "light"
-   primaryColor = "#1F4E79"
-   backgroundColor = "#FFFFFF"
-   secondaryBackgroundColor = "#F4F6F8"
-   textColor = "#1A1A1A"
-   font = "sans serif"
+base = "light"
 
-   [server]
-   maxUploadSize = 500
+# Color principal de Streamlit (acentos, sliders, toggles, tabs activos)
+# Usamos el celeste corporativo del manual de marca WL Hnos & Asoc
+primaryColor = "#1595BC"
 
-   [browser]
-   gatherUsageStats = false
+# Fondos
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F7FA"
+
+# Texto base (navy corporativo)
+textColor = "#102250"
+
+# Familia base. La tipografia real (Poppins/Open Sans) se inyecta por CSS en app.py
+font = "sans serif"
+
+[client]
+showSidebarNavigation = true
+
+[server]
+maxUploadSize = 500
+
+[browser]
+gatherUsageStats = false
