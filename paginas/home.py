@@ -10,7 +10,7 @@ st.markdown(
 
 st.divider()
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown("### 📑 Procesador Libro IVA")
@@ -38,6 +38,15 @@ with col3:
         "para copiar al papel de trabajo."
     )
     st.caption("Automatiza la carga manual del F.931")
+
+with col4:
+    st.markdown("### 🥩 Liquidaciones Compra Carne")
+    st.markdown(
+        "Subís los PDFs de liquidaciones (LCD, LCDP, LC) descargados de ARCA "
+        "y obtenés un Excel consolidado con TIPO, CPTE, FECHA, KG y $ BRUTO. "
+        "Detecta ajustes físicos de crédito y suma comisiones de LC."
+    )
+    st.caption("Reemplaza la carga manual del cuadro mensual")
 
 st.divider()
 
