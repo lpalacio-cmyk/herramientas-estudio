@@ -24,10 +24,11 @@ with col1:
 with col2:
     st.markdown("### 📒 Procesador Asientos ONVIO")
     st.markdown(
-        "Subís el Excel molde con los asientos como los armás en los papeles "
-        "de trabajo y lo recibís en el formato que pide ONVIO para importar."
+        "Pegás el asiento desde Excel directo en una grilla web (o subís el "
+        "archivo) y obtenés el Excel listo para importar a ONVIO. "
+        "Valida partida doble por asiento."
     )
-    st.caption("Próximamente")
+    st.caption("Reemplaza el flujo de carpeta + .bat")
 
 st.divider()
 
