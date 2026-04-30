@@ -89,7 +89,11 @@ def _buscar_empleados(texto):
 
 
 def _extraer_codigos_viii(texto):
-    """Extrae los 9 códigos del bloque VIII manejando layouts variables."""
+    """
+    Extrae los 9 códigos del bloque VIII manejando dos layouts:
+    A) Dos columnas: una línea contiene 'cod1 - desc1 monto1 cod2 - desc2 monto2'
+    B) Una columna con valores en líneas separadas (layout viejo)
+    """
     inicio = texto.find("MONTOS QUE SE INGRESAN")
     if inicio < 0:
         return {}
@@ -98,42 +102,49 @@ def _extraer_codigos_viii(texto):
     codigos = ["351", "301", "352", "302", "312", "028", "360", "270", "935"]
     resultado = {}
 
-    # Estrategia 1: código y valor en la misma línea
-    for cod in codigos:
-        patron = rf"{cod}\s*[-)][^\n]*?(\d{{1,3}}(?:\.\d{{3}})*,\d{{2}})\s*$"
-        m = re.search(patron, bloque, re.MULTILINE)
-        if m:
-            resultado[cod] = limpiar_numero(m.group(1))
+    # Estrategia 1: capturar TODAS las parejas (código, monto) por línea
+    # Esto resuelve correctamente el layout de dos columnas, donde una línea
+    # puede tener dos pares (cod, monto).
+    patron_par = re.compile(
+        r"(\d{3})\s*[-)]\s+[^\d\n]+?(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})"
+    )
+    for linea in bloque.split("\n"):
+        for cod, monto in patron_par.findall(linea):
+            if cod in codigos and cod not in resultado:
+                resultado[cod] = limpiar_numero(monto)
 
-    # Estrategia 2: códigos consecutivos sin valor inline (los valores vienen abajo)
-    lineas = bloque.split("\n")
-    for i, linea in enumerate(lineas):
-        m_cod = re.match(r"^\s*(\d{3})\s*[-)]", linea)
-        if not m_cod:
-            continue
-        cod = m_cod.group(1)
-        if cod not in codigos or cod in resultado:
-            continue
-        if re.search(r"\d{1,3}(?:\.\d{3})*,\d{2}", linea):
-            continue
+    # Estrategia 2 (fallback): si quedan códigos sin valor (layout sin monto inline),
+    # buscar montos en líneas siguientes en orden de aparición de los códigos.
+    pendientes_global = [c for c in codigos if c not in resultado]
+    if pendientes_global:
+        lineas = bloque.split("\n")
+        for i, linea in enumerate(lineas):
+            m_cod = re.match(r"^\s*(\d{3})\s*[-)]", linea)
+            if not m_cod:
+                continue
+            cod = m_cod.group(1)
+            if cod not in codigos or cod in resultado:
+                continue
+            if re.search(r"\d{1,3}(?:\.\d{3})*,\d{2}", linea):
+                continue  # ya tiene un valor (capturado por estrategia 1)
 
-        codigos_pendientes = [cod]
-        for j in range(i + 1, min(i + 6, len(lineas))):
-            l = lineas[j]
-            otro_cod = re.match(r"^\s*(\d{3})\s*[-)]", l)
-            if otro_cod and otro_cod.group(1) in codigos and otro_cod.group(1) not in resultado:
-                if not re.search(r"\d{1,3}(?:\.\d{3})*,\d{2}", l):
-                    codigos_pendientes.append(otro_cod.group(1))
-                    continue
-            montos = re.findall(r"\d{1,3}(?:\.\d{3})*,\d{2}", l)
-            if montos and codigos_pendientes:
-                for monto in montos:
-                    if codigos_pendientes:
-                        c = codigos_pendientes.pop(0)
-                        if c not in resultado:
-                            resultado[c] = limpiar_numero(monto)
-                if not codigos_pendientes:
-                    break
+            codigos_pendientes = [cod]
+            for j in range(i + 1, min(i + 8, len(lineas))):
+                l = lineas[j]
+                otro = re.match(r"^\s*(\d{3})\s*[-)]", l)
+                if otro and otro.group(1) in codigos and otro.group(1) not in resultado:
+                    if not re.search(r"\d{1,3}(?:\.\d{3})*,\d{2}", l):
+                        codigos_pendientes.append(otro.group(1))
+                        continue
+                montos = re.findall(r"\d{1,3}(?:\.\d{3})*,\d{2}", l)
+                if montos and codigos_pendientes:
+                    for monto in montos:
+                        if codigos_pendientes:
+                            c = codigos_pendientes.pop(0)
+                            if c not in resultado:
+                                resultado[c] = limpiar_numero(monto)
+                    if not codigos_pendientes:
+                        break
 
     return resultado
 
