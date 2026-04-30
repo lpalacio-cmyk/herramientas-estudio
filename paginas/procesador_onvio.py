@@ -6,6 +6,10 @@ Mantiene la lógica original (melt + validación de partida doble) y agrega
 dos formas de cargar datos:
   1. Grilla editable embebida (pegado directo desde Excel con Ctrl+V).
   2. Subir un archivo Excel (mismo formato que el .bat usaba).
+
+Las columnas de meses en la grilla son de texto libre, así aceptan cualquier
+formato de número que se pegue desde Excel: argentino (487.000,66), anglo
+(487000.66), contable (paréntesis para negativos), con o sin símbolo de moneda.
 """
 
 import io
@@ -17,21 +21,69 @@ import streamlit as st
 
 
 # ============================================================
-#  Lógica de negocio (idéntica al script original)
+#  Lógica de negocio
 # ============================================================
 
 NOMBRE_BASE_SALIDA = "Asientos_ONVIO"
 
 
+def parsear_monto(valor) -> float:
+    """
+    Convierte cualquier formato de número a float.
+    Acepta:
+      - Argentino: 487.000,66 / -487.000,66
+      - Anglo: 487000.66
+      - US con miles: 487,000.66
+      - Contable: (487.000,66) → negativo
+      - Con moneda: $ 487.000,66
+      - Vacío / None / NaN → 0.0
+    """
+    if pd.isna(valor) or valor is None:
+        return 0.0
+    if isinstance(valor, (int, float)):
+        return float(valor)
+
+    s = str(valor).strip()
+    if not s or s.lower() in ("nan", "none", "-"):
+        return 0.0
+
+    # Paréntesis = negativo (formato contable)
+    negativo = False
+    if s.startswith("(") and s.endswith(")"):
+        negativo = True
+        s = s[1:-1].strip()
+
+    # Quitar símbolos de moneda y espacios (incl. no-break space)
+    for c in ("$", "ARS", "USD", "€", " ", "\u00a0", "'"):
+        s = s.replace(c, "")
+
+    # Determinar separador decimal por posición del último signo
+    if "," in s and "." in s:
+        if s.rfind(",") > s.rfind("."):
+            # AR: 487.000,66 → coma es decimal
+            s = s.replace(".", "").replace(",", ".")
+        else:
+            # US: 487,000.66 → coma es miles
+            s = s.replace(",", "")
+    elif "," in s:
+        # Solo coma → asumimos decimal (formato AR)
+        s = s.replace(",", ".")
+    # Solo punto → ya está en formato anglo, lo dejamos
+
+    try:
+        n = float(s)
+        return -n if negativo else n
+    except ValueError:
+        return 0.0
+
+
 def transformar(df_entrada: pd.DataFrame) -> tuple[pd.DataFrame | None, str]:
     """
-    Toma el DataFrame con Código, Concepto y columnas de meses,
-    y devuelve (df_resultado, mensaje).
-    Si no balancea, devuelve (None, mensaje_de_error).
+    Toma el DataFrame con Código, Concepto y columnas de meses, y devuelve
+    (df_resultado, mensaje). Si no balancea, devuelve (None, mensaje_de_error).
     """
     df = df_entrada.copy()
 
-    # Validar columnas mínimas
     if "Código" not in df.columns or "Concepto" not in df.columns:
         return None, "Faltan las columnas 'Código' y/o 'Concepto'."
 
@@ -41,7 +93,6 @@ def transformar(df_entrada: pd.DataFrame) -> tuple[pd.DataFrame | None, str]:
     if df.empty:
         return None, "No hay filas con datos para procesar."
 
-    # Mantener orden original
     df["Orden_Original"] = df.index
 
     cols_fijas = ["Código", "Concepto", "Orden_Original"]
@@ -49,6 +100,10 @@ def transformar(df_entrada: pd.DataFrame) -> tuple[pd.DataFrame | None, str]:
 
     if not cols_meses:
         return None, "No se encontraron columnas de meses para procesar."
+
+    # Aplicar parser robusto a las columnas de meses (acepta cualquier formato)
+    for col in cols_meses:
+        df[col] = df[col].apply(parsear_monto)
 
     # Melt (desdinamizar)
     df_melted = df.melt(
@@ -58,8 +113,6 @@ def transformar(df_entrada: pd.DataFrame) -> tuple[pd.DataFrame | None, str]:
         value_name="Monto",
     )
 
-    # Limpieza
-    df_melted["Monto"] = pd.to_numeric(df_melted["Monto"], errors="coerce").fillna(0)
     df_melted = df_melted[df_melted["Monto"] != 0].copy()
 
     if df_melted.empty:
@@ -101,7 +154,7 @@ def transformar(df_entrada: pd.DataFrame) -> tuple[pd.DataFrame | None, str]:
     ]
     df_final["Fecha Imputacion"] = df_final["Fecha Imputacion"].dt.strftime("%d/%m/%Y")
 
-    # Validación de partida doble (por asiento, no global)
+    # Validación de partida doble (por asiento)
     sumas_por_asiento = df_final.groupby("Nro. Asiento")["Monto"].sum().round(2)
     desbalanceados = sumas_por_asiento[sumas_por_asiento != 0]
 
@@ -172,6 +225,10 @@ with st.expander("¿Cómo lo uso?"):
 
         Si algún asiento no balancea (suma distinta de cero en un mes),
         la herramienta te avisa y **no genera el archivo**.
+
+        💡 Los montos en la grilla aceptan cualquier formato: **argentino**
+        (`487.000,66`), **anglo** (`487000.66`), o **contable** con paréntesis
+        para negativos (`(487.000,66)`).
         """
     )
 
@@ -229,17 +286,20 @@ mensaje = None
 # ----- TAB 1: GRILLA EDITABLE -----
 with tab_grilla:
     st.markdown(
-        "Hacé clic en una celda y pegá con `Ctrl+V` los datos copiados desde "
-        "Excel. Podés agregar filas con el `+` que aparece abajo a la derecha."
+        "Hacé clic en la primera celda vacía y pegá con `Ctrl+V` los datos "
+        "copiados desde Excel. Podés agregar más filas con el `+` que aparece "
+        "abajo a la derecha de la grilla."
+    )
+    st.caption(
+        "✓ Acepta números en formato argentino (487.000,66), anglo (487000.66) "
+        "o contable con paréntesis para negativos."
     )
 
-    # DataFrame inicial vacío con la estructura correcta
+    # DataFrame inicial vacío
     columnas = ["Código", "Concepto"] + cols_meses
-    df_inicial = pd.DataFrame(
-        {col: [None] * 5 for col in columnas},
-    )
+    df_inicial = pd.DataFrame({col: [""] * 5 for col in columnas})
 
-    # Configuración de columnas
+    # Configuración de columnas — TODAS de texto para aceptar cualquier formato
     column_config = {
         "Código": st.column_config.TextColumn(
             "Código",
@@ -253,10 +313,9 @@ with tab_grilla:
         ),
     }
     for col_mes in cols_meses:
-        column_config[col_mes] = st.column_config.NumberColumn(
+        column_config[col_mes] = st.column_config.TextColumn(
             col_mes,
-            help=f"Monto del mes {col_mes}",
-            format="%.2f",
+            help=f"Monto del mes {col_mes}. Acepta 487.000,66 o 487000.66",
             width="small",
         )
 
@@ -296,7 +355,6 @@ with tab_excel:
     if st.button("Procesar (Excel)", type="primary", disabled=not archivo, key="btn_excel"):
         try:
             df_subido = pd.read_excel(archivo, sheet_name=nombre_hoja)
-            # Convertir columnas de fecha datetime a string DD/MM/YYYY
             df_subido.columns = [
                 c.strftime("%d/%m/%Y") if isinstance(c, (datetime, pd.Timestamp)) else c
                 for c in df_subido.columns
@@ -317,17 +375,14 @@ if mensaje is not None:
     if df_resultado is not None:
         st.success(f"✅ Asiento balanceado correctamente. {len(df_resultado)} líneas generadas.")
 
-        # Métricas
         col1, col2, col3 = st.columns(3)
         col1.metric("Líneas totales", len(df_resultado))
         col2.metric("Asientos", df_resultado["Nro. Asiento"].nunique())
         col3.metric("Suma de montos", f"{df_resultado['Monto'].sum():,.2f}")
 
-        # Vista previa
         with st.expander("Vista previa", expanded=True):
             st.dataframe(df_resultado, use_container_width=True, hide_index=True)
 
-        # Descarga
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         nombre_archivo = f"{NOMBRE_BASE_SALIDA}_{timestamp}.xlsx"
         st.download_button(
