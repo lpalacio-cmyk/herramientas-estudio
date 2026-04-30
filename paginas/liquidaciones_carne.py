@@ -28,7 +28,7 @@ RE_TOTAL_GASTOS = re.compile(r"Total\s+Gastos:\s*\$\s*([\d,]+\.\d{2})?")
 RE_FILA_CAT = re.compile(
     r"Kg\.\s*Vivo\s+([\d,]+)\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+(\d+\.\d{2})"
 )
-RE_AJUSTE = re.compile(r"Ajuste\s+Físico\s+de\s+Crédito", re.IGNORECASE)
+RE_AJUSTE = re.compile(r"Ajuste\s+Físico\s+de[\s\S]{0,40}?Crédito", re.IGNORECASE)
 RE_LCDP = re.compile(
     r"Liquidaci[óo]n\s+Compra\s+Directa.*Porcinos", re.IGNORECASE | re.DOTALL
 )
@@ -457,20 +457,12 @@ if st.session_state.lc_filas:
     # Export
     st.divider()
 
-    col_a, col_b = st.columns([3, 7])
-    with col_a:
-        incluir_archivo = st.checkbox(
-            "Incluir columna 'Archivo'",
-            value=False,
-            help="Trazabilidad: agrega el nombre del PDF origen al final.",
-        )
-
     filas_export = sorted(
         st.session_state.lc_filas,
         key=lambda f: (f["FECHA"] or date(1900, 1, 1), f.get("CPTE") or ""),
     )
 
-    excel_bytes = generar_excel(filas_export, incluir_archivo=incluir_archivo)
+    excel_bytes = generar_excel(filas_export, incluir_archivo=True)
     nombre_xlsx = (
         f"liquidaciones_carne_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
     )
