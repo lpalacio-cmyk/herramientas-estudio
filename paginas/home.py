@@ -10,7 +10,7 @@ st.markdown(
 
 st.divider()
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("### 📑 Procesador Libro IVA")
@@ -29,6 +29,15 @@ with col2:
         "Valida partida doble por asiento."
     )
     st.caption("Reemplaza el flujo de carpeta + .bat")
+
+with col3:
+    st.markdown("### 📄 Procesador F.931")
+    st.markdown(
+        "Subís los PDFs del formulario 931 de ARCA (hasta 12 a la vez) y "
+        "extrae los datos clave por OCR. Grilla editable y Excel resumen "
+        "para copiar al papel de trabajo."
+    )
+    st.caption("Automatiza la carga manual del F.931")
 
 st.divider()
 
