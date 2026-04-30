@@ -1,55 +1,77 @@
-"""Página de inicio - landing del set de herramientas."""
+"""Pagina de inicio - landing del set de herramientas."""
 
 import streamlit as st
 
-st.title("Herramientas del Estudio")
+# --- Hero ---
 st.markdown(
-    "Set de utilidades internas para automatizar tareas repetitivas del flujo contable. "
-    "Usá el menú de la izquierda para abrir la herramienta que necesites."
+    """
+    <div class="hero">
+        <span class="hero-eyebrow">WL Hnos &amp; Asoc · Estudio Contable</span>
+        <h1>Herramientas del Estudio</h1>
+        <p class="subtitle">
+            Set de utilidades internas para automatizar tareas repetitivas del flujo
+            contable. Elegí una herramienta en el menú lateral para empezar.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
-st.divider()
+# --- Tarjetas ---
+st.markdown(
+    """
+    <div class="tool-grid">
 
-col1, col2, col3, col4 = st.columns(4)
+        <div class="tool-card">
+            <div class="tool-card-icon">📑</div>
+            <h3>Procesador Libro IVA</h3>
+            <p>
+                Subís los ZIPs descargados de AFIP (uno o varios meses) y obtenés dos
+                Excel consolidados — Ventas y Compras — listos para pegar en la base
+                de control.
+            </p>
+            <span class="tool-card-tag">Reemplaza el .bat</span>
+        </div>
 
-with col1:
-    st.markdown("### 📑 Procesador Libro IVA")
-    st.markdown(
-        "Subís los ZIPs descargados de AFIP (uno o varios meses) y "
-        "obtenés dos Excel consolidados — uno de **Ventas** y uno de **Compras** — "
-        "listos para pegar en la base de control."
-    )
-    st.caption("Reemplaza el flujo de carpeta + .bat")
+        <div class="tool-card">
+            <div class="tool-card-icon">📒</div>
+            <h3>Procesador Asientos ONVIO</h3>
+            <p>
+                Pegás el asiento desde Excel directo en una grilla web (o subís el
+                archivo) y obtenés el Excel listo para importar a ONVIO. Valida partida
+                doble por asiento.
+            </p>
+            <span class="tool-card-tag">Reemplaza el .bat</span>
+        </div>
 
-with col2:
-    st.markdown("### 📒 Procesador Asientos ONVIO")
-    st.markdown(
-        "Pegás el asiento desde Excel directo en una grilla web (o subís el "
-        "archivo) y obtenés el Excel listo para importar a ONVIO. "
-        "Valida partida doble por asiento."
-    )
-    st.caption("Reemplaza el flujo de carpeta + .bat")
+        <div class="tool-card">
+            <div class="tool-card-icon">📄</div>
+            <h3>Procesador F.931</h3>
+            <p>
+                Subís los PDFs del formulario 931 de ARCA (hasta 12 a la vez) y
+                extrae los datos clave por OCR. Grilla editable y Excel resumen
+                para copiar al papel de trabajo.
+            </p>
+            <span class="tool-card-tag">Automatiza F.931</span>
+        </div>
 
-with col3:
-    st.markdown("### 📄 Procesador F.931")
-    st.markdown(
-        "Subís los PDFs del formulario 931 de ARCA (hasta 12 a la vez) y "
-        "extrae los datos clave por OCR. Grilla editable y Excel resumen "
-        "para copiar al papel de trabajo."
-    )
-    st.caption("Automatiza la carga manual del F.931")
+        <div class="tool-card">
+            <div class="tool-card-icon">🥩</div>
+            <h3>Liquidaciones Compra Carne</h3>
+            <p>
+                Subís los PDFs de liquidaciones (LCD, LCDP, LC) de ARCA y obtenés
+                un Excel consolidado con TIPO, CPTE, FECHA, KG y $ BRUTO. Detecta
+                ajustes físicos de crédito y suma comisiones de LC.
+            </p>
+            <span class="tool-card-tag">Reemplaza carga manual</span>
+        </div>
 
-with col4:
-    st.markdown("### 🥩 Liquidaciones Compra Carne")
-    st.markdown(
-        "Subís los PDFs de liquidaciones (LCD, LCDP, LC) descargados de ARCA "
-        "y obtenés un Excel consolidado con TIPO, CPTE, FECHA, KG y $ BRUTO. "
-        "Detecta ajustes físicos de crédito y suma comisiones de LC."
-    )
-    st.caption("Reemplaza la carga manual del cuadro mensual")
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-st.divider()
-
+# --- Footer info ---
 with st.expander("ℹ️ Sobre estas herramientas"):
     st.markdown(
         """
@@ -60,3 +82,12 @@ with st.expander("ℹ️ Sobre estas herramientas"):
           aparece sola en el menú.
         """
     )
+
+st.markdown(
+    """
+    <div class="home-footer">
+        <strong>WL Hnos &amp; Asoc</strong> · Estudio Contable · Catamarca, Argentina
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
